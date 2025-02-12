@@ -1,15 +1,14 @@
 document.addEventListener("DOMContentLoaded", function () {
     const curveCanvas = document.getElementById("curveCanvas");
     const curveCtx = curveCanvas.getContext("2d");
-
+    const hodographCanvas = document.getElementById("hodographCanvas");
+    const hodographCtx = hodographCanvas.getContext("2d");
     const slider = document.getElementById("t-slider");
     const tValueDisplay = document.getElementById("t-value");
 
-    const hodographCanvas = document.getElementById("hodographCanvas");
-    const hodographCtx = hodographCanvas.getContext("2d");
-
     let controlPoints = [];
-    let t = 0.5; // Default value at center
+    let hodographCanvasPoints = [];
+    let t = 0.5;
     let selectedPoint = null;
 
     slider.value = t;
@@ -21,20 +20,9 @@ document.addEventListener("DOMContentLoaded", function () {
         draw();
     });
 
-    function resizeCanvas() {
-        curveCanvas.width = curveCanvas.clientWidth;
-        curveCanvas.height = curveCanvas.clientHeight;
-        hodographCanvas.width = hodographCanvas.clientWidth;
-        hodographCanvas.height = hodographCanvas.clientHeight;
-        draw();
-    }
-
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-
     curveCanvas.addEventListener("mousedown", function (event) {
         const { offsetX, offsetY } = event;
-        if (event.button === 0) { // Left Click
+        if (event.button === 0) {
             if (!selectPoint(offsetX, offsetY)) {
                 addPoint(offsetX, offsetY);
             }
@@ -58,6 +46,16 @@ document.addEventListener("DOMContentLoaded", function () {
         selectedPoint = null;
     });
 
+    function resizeCanvas() {
+        curveCanvas.width = curveCanvas.clientWidth;
+        curveCanvas.height = curveCanvas.clientHeight;
+        hodographCanvas.width = hodographCanvas.clientWidth;
+        hodographCanvas.height = hodographCanvas.clientHeight;
+        draw();
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
     function addPoint(x, y) {
         controlPoints.push({ x, y });
         draw();
@@ -80,7 +78,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function bezierPoint(t, points) {
         if (points.length < 2) return points[0] || { x: 0, y: 0 };
-
         let temp = points.map(p => ({ x: p.x, y: p.y }));
         let n = temp.length - 1;
         for (let r = 1; r <= n; r++) {
@@ -92,73 +89,19 @@ document.addEventListener("DOMContentLoaded", function () {
         return temp[0];
     }
 
-    function computeHodograph(points) {
-        if (points.length < 2) return [];
-
-        let hodographPoints = [];
-        for (let i = 0; i < points.length - 1; i++) {
-            let x = (points.length - 1) * (points[i + 1].x - points[i].x);
-            let y = (points.length - 1) * (points[i + 1].y - points[i].y);
-            hodographPoints.push({ x, y });
-        }
-        return hodographPoints;
-    }
-
     function drawBezierCurve(ctx, points) {
         if (points.length < 2) return;
-
         ctx.strokeStyle = "red";
         ctx.lineWidth = 2;
         ctx.beginPath();
         let start = bezierPoint(0, points);
         ctx.moveTo(start.x, start.y);
-        for (let t = 0; t <= 1; t += 0.01) {
-            let p = bezierPoint(t, points);
+        for (let tVal = 0; tVal <= 1; tVal += 0.01) {
+            let p = bezierPoint(tVal, points);
             ctx.lineTo(p.x, p.y);
         }
         ctx.stroke();
     }
-
-    function drawHodograph(ctx, points) {
-        if (points.length < 2) return;
-
-        let hodographPoints = computeHodograph(points);
-        let origin = { x: hodographCanvas.width / 2, y: hodographCanvas.height / 2 };
-
-        // Find the bounds of the Hodograph points to scale them
-        let minX = Math.min(...hodographPoints.map(p => p.x));
-        let maxX = Math.max(...hodographPoints.map(p => p.x));
-        let minY = Math.min(...hodographPoints.map(p => p.y));
-        let maxY = Math.max(...hodographPoints.map(p => p.y));
-
-        // Calculate scaling factors to fit within the canvas
-        let scaleX = (hodographCanvas.width - 40) / (maxX - minX); // Padding to avoid touching canvas borders
-        let scaleY = (hodographCanvas.height - 40) / (maxY - minY);
-
-        // Apply scaling and translation
-        ctx.strokeStyle = "orange";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(origin.x + (hodographPoints[0].x - minX) * scaleX, origin.y - (hodographPoints[0].y - minY) * scaleY);
-
-        for (let i = 1; i < hodographPoints.length; i++) {
-            let x = origin.x + (hodographPoints[i].x - minX) * scaleX;
-            let y = origin.y - (hodographPoints[i].y - minY) * scaleY;
-            ctx.lineTo(x, y);
-        }
-
-        ctx.stroke();
-
-        ctx.fillStyle = "orange";
-        hodographPoints.forEach(p => {
-            let x = origin.x + (p.x - minX) * scaleX;
-            let y = origin.y - (p.y - minY) * scaleY;
-            ctx.beginPath();
-            ctx.arc(x, y, 4, 0, 2 * Math.PI);
-            ctx.fill();
-        });
-    }
-
 
     function drawConnections(ctx, points) {
         if (points.length < 2) return;
@@ -182,22 +125,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function drawGreenLines(ctx, t, points) {
         if (points.length < 2) return;
-
         let temp = points.map(p => ({ x: p.x, y: p.y }));
         let n = temp.length - 1;
-
         ctx.strokeStyle = "green";
         ctx.lineWidth = 1;
-
         for (let r = 1; r <= n; r++) {
             ctx.beginPath();
             for (let i = 0; i < n - r + 1; i++) {
                 let midX = (1 - t) * temp[i].x + t * temp[i + 1].x;
                 let midY = (1 - t) * temp[i].y + t * temp[i + 1].y;
-
                 temp[i].x = midX;
                 temp[i].y = midY;
-
                 if (i > 0) ctx.lineTo(temp[i].x, temp[i].y);
                 else ctx.moveTo(temp[i].x, temp[i].y);
             }
@@ -208,14 +146,89 @@ document.addEventListener("DOMContentLoaded", function () {
     function drawMovingPoint(ctx, points) {
         if (points.length < 2) return;
         let p = bezierPoint(t, points);
-
         ctx.fillStyle = "green";
         ctx.beginPath();
         ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI);
         ctx.fill();
-
         drawGreenLines(ctx, t, points);
     }
+
+    const radius = 4;
+    function point(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    function hCenterPoint() {
+        var x = hodographCanvas.width / 2;
+        var y = hodographCanvas.height / 2;
+        return new point(x, y);
+    }
+
+    function computeHodographCanvasPoint(i) {
+        var cent = hCenterPoint();
+        var a = controlPoints[i];
+        var b = controlPoints[i - 1];
+        var x = cent.x + a.x - b.x;
+        var y = cent.y + a.y - b.y;
+        return new point(x, y);
+    }
+
+    function rehodographCanvas() {
+        hodographCanvasPoints = [];
+        for (var i = 1; i < controlPoints.length; i++) {
+            hodographCanvasPoints.push(computeHodographCanvasPoint(i));
+        }
+    }
+
+    function hDrawControlPoint(context, pt, color) {
+        context.beginPath();
+        context.arc(pt.x, pt.y, radius, 0, 2 * Math.PI, false);
+        context.lineWidth = 2;
+        context.fillStyle = color;
+        context.fill();
+        context.strokeStyle = color;
+        context.stroke();
+    }
+
+    function hDrawControlPoints(context, points, color) {
+        for (var i = 0; i < points.length; i++) {
+            hDrawControlPoint(context, points[i], color);
+        }
+    }
+
+    function hConnectControlPoints(context, points) {
+        if (points.length === 0) return;
+        var cent = hCenterPoint();
+        context.beginPath();
+        context.strokeStyle = "gray";
+        context.lineWidth = 1;
+        for (var i = 0; i < points.length - 1; i++) {
+            context.moveTo(points[i].x, points[i].y);
+            context.lineTo(points[i + 1].x, points[i + 1].y);
+            context.stroke();
+            context.moveTo(cent.x, cent.y);
+            context.lineTo(points[i].x, points[i].y);
+            context.stroke();
+        }
+
+        if (points.length > 0) {
+            context.moveTo(cent.x, cent.y);
+            context.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+            context.stroke();
+        }
+    }
+
+    function hDrawHodographCurve(context, points) {
+        if (points.length === 0) return;
+        context.strokeStyle = "orange";
+        for (var tVal = 0; tVal < 1; tVal += 0.001) {
+            var pt = bezierPoint(tVal, points);
+            context.strokeRect(pt.x, pt.y, 1, 1);
+        }
+        hConnectControlPoints(context, points);
+    }
+
 
     function draw() {
         curveCtx.clearRect(0, 0, curveCanvas.width, curveCanvas.height);
@@ -224,7 +237,11 @@ document.addEventListener("DOMContentLoaded", function () {
         drawConnections(curveCtx, controlPoints);
         drawBezierCurve(curveCtx, controlPoints);
         drawPoints(curveCtx, controlPoints, "blue");
-        drawHodograph(hodographCtx, controlPoints);
         drawMovingPoint(curveCtx, controlPoints);
+
+        rehodographCanvas();
+        hDrawHodographCurve(hodographCtx, hodographCanvasPoints);
+        hDrawControlPoints(hodographCtx, hodographCanvasPoints, "orange");
+        hDrawControlPoint(hodographCtx, hCenterPoint(), "orange");
     }
 });
