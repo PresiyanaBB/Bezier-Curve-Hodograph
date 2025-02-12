@@ -190,10 +190,16 @@ document.addEventListener("DOMContentLoaded", function () {
         context.stroke();
     }
 
-    function hDrawControlPoints(context, points, color) {
+    function hDrawControlPoints(context, points, color, scale = 1) {
+        context.save();
+        var cent = hCenterPoint();
+        context.translate(cent.x, cent.y);
+        context.scale(scale, scale);
+        context.translate(-cent.x, -cent.y);
         for (var i = 0; i < points.length; i++) {
             hDrawControlPoint(context, points[i], color);
         }
+        context.restore();
     }
 
     function hConnectControlPoints(context, points) {
@@ -210,7 +216,6 @@ document.addEventListener("DOMContentLoaded", function () {
             context.lineTo(points[i].x, points[i].y);
             context.stroke();
         }
-
         if (points.length > 0) {
             context.moveTo(cent.x, cent.y);
             context.lineTo(points[points.length - 1].x, points[points.length - 1].y);
@@ -218,17 +223,40 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function hDrawHodographCurve(context, points) {
+    function hDrawHodographCurve(context, points, scale = 1) {
         if (points.length === 0) return;
+        context.save();
+        var cent = hCenterPoint();
+        context.translate(cent.x, cent.y);
+        context.scale(scale, scale);
+        context.translate(-cent.x, -cent.y);
         context.strokeStyle = "orange";
-        context.lineWidth = 0.5;
+        context.lineWidth = 0.5 / scale;
         for (var tVal = 0; tVal < 1; tVal += 0.001) {
             var pt = bezierPoint(tVal, points);
             context.strokeRect(pt.x, pt.y, 1, 1);
         }
         hConnectControlPoints(context, points);
+        context.restore();
     }
 
+    function computeHodographScale() {
+        var cent = hCenterPoint();
+        let maxAbs = 0;
+        hodographCanvasPoints.forEach(pt => {
+            let dx = Math.abs(pt.x - cent.x);
+            let dy = Math.abs(pt.y - cent.y);
+            maxAbs = Math.max(maxAbs, dx, dy);
+        });
+        let margin = 20;
+        let availableX = (hodographCanvas.width / 2) - margin;
+        let availableY = (hodographCanvas.height / 2) - margin;
+        let scaleX = maxAbs ? availableX / maxAbs : 1;
+        let scaleY = maxAbs ? availableY / maxAbs : 1;
+        let scale = Math.min(scaleX, scaleY);
+        if (scale > 1) scale = 1;
+        return scale;
+    }
 
     function draw() {
         curveCtx.clearRect(0, 0, curveCanvas.width, curveCanvas.height);
@@ -240,8 +268,9 @@ document.addEventListener("DOMContentLoaded", function () {
         drawMovingPoint(curveCtx, controlPoints);
 
         rehodographCanvas();
-        hDrawHodographCurve(hodographCtx, hodographCanvasPoints);
-        hDrawControlPoints(hodographCtx, hodographCanvasPoints, "orange");
+        let scale = computeHodographScale();
+        hDrawHodographCurve(hodographCtx, hodographCanvasPoints, scale);
+        hDrawControlPoints(hodographCtx, hodographCanvasPoints, "orange", scale);
         hDrawControlPoint(hodographCtx, hCenterPoint(), "black");
     }
 });
