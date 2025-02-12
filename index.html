@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bézier Curve - Hodograph</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <h2>Bézier Curve - Hodograph</h2>
+    <p>Left Click: Add | Right Click: Delete | Drag: Move</p>
+
+    <div class="container">
+        <canvas id="curveCanvas"></canvas>
+        <canvas id="hodographCanvas"></canvas>
+    </div>
+
+    <input type="range" id="t-slider" min="0" max="1" step="0.01" value="0.5">
+    <label for="t-slider">t = <span id="t-value">0.5</span></label>
+
+
+    <script src="script.js"></script>
+</body>
+
+</html>
