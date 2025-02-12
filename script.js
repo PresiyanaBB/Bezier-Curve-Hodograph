@@ -153,7 +153,6 @@ document.addEventListener("DOMContentLoaded", function () {
         drawGreenLines(ctx, t, points);
     }
 
-    const radius = 4;
     function point(x, y) {
         this.x = x;
         this.y = y;
@@ -183,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function hDrawControlPoint(context, pt, color) {
         context.beginPath();
-        context.arc(pt.x, pt.y, radius, 0, 2 * Math.PI, false);
+        context.arc(pt.x, pt.y, 4, 0, 2 * Math.PI);
         context.lineWidth = 2;
         context.fillStyle = color;
         context.fill();
@@ -222,6 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function hDrawHodographCurve(context, points) {
         if (points.length === 0) return;
         context.strokeStyle = "orange";
+        context.lineWidth = 0.5;
         for (var tVal = 0; tVal < 1; tVal += 0.001) {
             var pt = bezierPoint(tVal, points);
             context.strokeRect(pt.x, pt.y, 1, 1);
@@ -242,6 +242,6 @@ document.addEventListener("DOMContentLoaded", function () {
         rehodographCanvas();
         hDrawHodographCurve(hodographCtx, hodographCanvasPoints);
         hDrawControlPoints(hodographCtx, hodographCanvasPoints, "orange");
-        hDrawControlPoint(hodographCtx, hCenterPoint(), "orange");
+        hDrawControlPoint(hodographCtx, hCenterPoint(), "black");
     }
 });
